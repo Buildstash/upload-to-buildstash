@@ -1,0 +1,82 @@
+name: 'Buildstash Upload'
+description: 'Upload builds to Buildstash'
+inputs:
+  structure:
+    description: 'Structure type (e.g. file or file+expansion)'
+    required: true
+    default: 'file'
+  primary_file_path:
+    description: 'Path to the primary file to upload'
+    required: true
+  expansion_file_path:
+    description: 'Path to an expansion file to be paired with primary (optional)'
+    required: true
+  version_component_1_major:
+    description: 'Major version component'
+    required: true
+  version_component_2_minor:
+    description: 'Minor version component'
+    required: true
+  version_component_3_patch:
+    description: 'Patch version component'
+    required: true
+  version_component_extra:
+    description: 'Extra version component (optional)'
+    required: false
+  version_component_meta:
+    description: 'Meta version component (optional)'
+    required: false
+  custom_build_number:
+    description: 'Custom build number (optional)'
+    required: false
+  ci_pipeline:
+    description: 'CI pipeline name'
+    required: false
+  ci_run_id:
+    description: 'CI run ID'
+    required: false
+  ci_run_url:
+    description: 'CI run URL'
+    required: false
+  ci_build_duration:
+    description: 'CI build duration'
+    required: false
+  vc_host_type:
+    description: 'Version control host type'
+    required: false
+    default: 'git'
+  vc_host:
+    description: 'Version control host'
+    required: false
+    default: 'github'
+  vc_repo_name:
+    description: 'Repository name'
+    required: false
+  vc_repo_url:
+    description: 'Repository URL'
+    required: false
+  vc_branch:
+    description: 'Branch name'
+    required: false
+  vc_commit_sha:
+    description: 'Commit SHA'
+    required: false
+  vc_commit_url:
+    description: 'Commit URL'
+    required: false
+  platform:
+    description: 'Platform'
+    required: true
+  stream:
+    description: 'Stream'
+    required: true
+  notes:
+    description: 'Build notes'
+    required: false
+secrets:
+  api_key:
+    description: 'Application specific API Key'
+    required: true
+runs:
+  using: 'node20'
+  main: 'dist/index.js'

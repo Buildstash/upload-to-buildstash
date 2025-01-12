@@ -10,7 +10,7 @@ inputs:
     required: true
   expansion_file_path:
     description: 'Path to an expansion file to be paired with primary (optional)'
-    required: true
+    required: false
   version_component_1_major:
     description: 'Major version component'
     required: true

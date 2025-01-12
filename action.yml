@@ -1,5 +1,5 @@
 name: 'Buildstash'
-description: 'Upload builds to Buildstash'
+description: 'Upload build artifacts to Buildstash'
 inputs:
   structure:
     description: 'Structure type (e.g. file or file+expansion)'

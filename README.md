@@ -38,7 +38,7 @@ A GitHub action for uploading build artifacts to Buildstash.
 You may also optionally pass in a single expansion file, if the platform / primary file supports it. For example, if you upload an .apk, you could upload an .obb with it. To do so set 'structure' to `file+expansion`, and pass in 'expansion_file_path'.
 
 ### API key
-You will need to generate an application specific API key, and save it as an Actions secret in your repository.
+You will need to generate an application specific API key, and save it as an [Actions secret](https://docs.github.com/en/actions/security-for-github-actions/security-guides/using-secrets-in-github-actions) in your repository.
 
 ### More help
 **For more help, please see the [GitHub Actions setup in Buildstash documentation](https://docs.buildstash.com/integrations/ci/github).**

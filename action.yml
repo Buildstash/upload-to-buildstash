@@ -1,6 +1,9 @@
 name: 'Buildstash'
 description: 'Upload build artifacts to Buildstash'
 inputs:
+  api_key:
+    description: 'Application specific API Key'
+    required: true
   structure:
     description: 'Structure type (e.g. file or file+expansion)'
     required: true
@@ -73,10 +76,6 @@ inputs:
   notes:
     description: 'Build notes'
     required: false
-secrets:
-  api_key:
-    description: 'Application specific API Key'
-    required: true
 branding:
   icon: 'package'
   color: 'purple'

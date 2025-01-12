@@ -15,6 +15,9 @@ A GitHub action for uploading build artifacts to Buildstash.
       version_component_1_major: '0'  # Pass in version components
       version_component_2_minor: '0'
       version_component_3_patch: '1'
+      version_component_extra: 'beta'  # Optional extra and meta version components
+      version_component_meta: '2024.12.01'
+      custom_build_number: '12345' # Optional custom build number
       platform: 'android'  # Assuming platform is Android, see Buildstash documentation for other platforms
       stream: 'default'  # Exact name of a build stream in your app
       # Optional CI information

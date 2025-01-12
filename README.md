@@ -38,4 +38,4 @@ You may also optionally pass in a single expansion file, if the platform / prima
 You will need to generate an application specific API key, and save it as an Actions secret in your repository.
 
 ### More help
-**For more help, please see the [GitHub Actions setup iin Buildstash documentation](https://docs.buildstash.com/integrations/ci/github).**
+**For more help, please see the [GitHub Actions setup in Buildstash documentation](https://docs.buildstash.com/integrations/ci/github).**

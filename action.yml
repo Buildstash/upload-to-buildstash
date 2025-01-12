@@ -1,4 +1,4 @@
-name: 'Buildstash Upload'
+name: 'Buildstash'
 description: 'Upload builds to Buildstash'
 inputs:
   structure:

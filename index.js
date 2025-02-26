@@ -91,7 +91,7 @@ async function run() {
         headers: {
           'Content-Type': primary_presigned_data.headers['Content-Type'],
           'Content-Length': primary_presigned_data.headers['Content-Length'],
-          'ContentDisposition': 'attachment; filename="' + primaryFilename + '"',
+          'Content-Disposition': primary_presigned_data.headers['Content-Disposition'],
           'x-amz-acl': 'private'
         },
         maxBodyLength: Infinity
@@ -108,7 +108,7 @@ async function run() {
           headers: {
             'Content-Type': expansion_files[0].presigned_data.headers['Content-Type'],
             'Content-Length': expansion_files[0].presigned_data.headers['Content-Length'],
-            'ContentDisposition': 'attachment; filename="' + expansionFilename + '"',
+            'Content-Disposition': expansion_files[0].presigned_data.headers['Content-Disposition'],
             'x-amz-acl': 'private'
           },
           maxBodyLength: Infinity

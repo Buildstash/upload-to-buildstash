@@ -76,6 +76,13 @@ inputs:
   notes:
     description: 'Build notes'
     required: false
+outputs:
+  build_id:
+    description: 'The ID of the uploaded build'
+  build_info_url:
+    description: 'URL to view the build information on Buildstash'
+  download_url:
+    description: 'URL to download the build'
 branding:
   icon: 'package'
   color: 'purple'

@@ -35980,7 +35980,17 @@ async function run() {
       }
     );
 
-    core.info('Upload completed and verified successfully!');
+    // Extract the values from the response
+    const buildId = verifyResponse.data.build_id;
+    const buildInfoUrl = verifyResponse.data.build_info_url;
+    const downloadUrl = verifyResponse.data.download_url;
+
+    // Set the outputs using the Actions core library
+    core.setOutput('build_id', buildId);
+    core.setOutput('build_info_url', buildInfoUrl);
+    core.setOutput('download_url', downloadUrl);
+
+    core.info('Upload completed and verified successfully! Uploaded build id ' + buildId);
     
   } catch (error) {
     core.setFailed(error.message);

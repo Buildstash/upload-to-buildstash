@@ -131,11 +131,13 @@ async function run() {
 
     // Extract the values from the response
     const buildId = verifyResponse.data.build_id;
+    const pendingProcessing = verifyResponse.data.pending_processing;
     const buildInfoUrl = verifyResponse.data.build_info_url;
     const downloadUrl = verifyResponse.data.download_url;
 
     // Set the outputs using the Actions core library
     core.setOutput('build_id', buildId);
+    core.setOutput('pending_processing', pendingProcessing);
     core.setOutput('build_info_url', buildInfoUrl);
     core.setOutput('download_url', downloadUrl);
 

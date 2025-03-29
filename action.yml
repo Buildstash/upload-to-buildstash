@@ -79,6 +79,8 @@ inputs:
 outputs:
   build_id:
     description: 'The ID of the uploaded build'
+  pending_processing:
+    description: 'Whether the build is pending additional processing on server (typically iOS or Android builds)'
   build_info_url:
     description: 'URL to view the build information on Buildstash'
   download_url:

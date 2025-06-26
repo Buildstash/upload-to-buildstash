@@ -25,7 +25,7 @@ async function uploadChunkedFile({
 
     const chunkStart = i * chunkSize;
     const chunkEnd = Math.min((i + 1) * chunkSize - 1, filesize - 1);
-    const chunkStream = fs.createReadStream(filePath, { start: chunkStart, end: chunkEnd });
+    let chunkStream = fs.createReadStream(filePath, { start: chunkStart, end: chunkEnd });
 
     const contentLength = chunkEnd - chunkStart + 1;
 

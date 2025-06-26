@@ -7,7 +7,7 @@ A GitHub action for uploading build artifacts to Buildstash.
 
 ```
   - name: Upload to Buildstash
-    uses: Buildstash/upload-to-buildstash@v1.1.1
+    uses: Buildstash/upload-to-buildstash@v1.2.0
     with:
       api_key: ${{ secrets.BUILDSTASH_API_KEY }}
       structure: 'file'  # file for single file, file+expansion for expansion file

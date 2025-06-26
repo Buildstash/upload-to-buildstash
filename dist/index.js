@@ -35855,6 +35855,119 @@ const axios = __nccwpck_require__(7269);
 const index_FormData = __nccwpck_require__(6454);
 const path = __nccwpck_require__(6928);
 
+async function uploadChunkedFile({
+  filePath,
+  filesize,
+  pendingUploadId,
+  chunkedNumberParts,
+  chunkedPartSizeMb,
+  apiKey,
+  isExpansion = false
+}) {
+  // Read the file at filePath into a buffer
+  const chunkSize = chunkedPartSizeMb * 1024 * 1024;
+  const parts = [];
+  const endpoint = isExpansion
+    ? 'https://app.buildstash.com/api/v1/upload/request/multipart/expansion'
+    : 'https://app.buildstash.com/api/v1/upload/request/multipart';
+
+  // Loop through each part, get presigned URL, and upload it
+  for (let i = 0; i < chunkedNumberParts; i++) {
+
+    const chunkStart = i * chunkSize;
+    const chunkEnd = Math.min((i + 1) * chunkSize - 1, filesize - 1);
+    const chunkStream = fs.createReadStream(filePath, { start: chunkStart, end: chunkEnd });
+
+    const contentLength = chunkEnd - chunkStart + 1;
+
+    const partNumber = i + 1;
+
+    core.info('Uploading chunked upload, part: ' + partNumber + ' of ' + chunkedNumberParts);
+
+    // Request presigned URL for this part
+    const presignedResp = await axios.post(
+      endpoint,
+      {
+        pending_upload_id: pendingUploadId,
+        part_number: partNumber,
+        content_length: contentLength
+      },
+      {
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    // Get presigned URL for this part from response
+    const presignedUrl = presignedResp.data.part_presigned_url;
+
+    // Upload chunk via presigned URL (on failure retry part once before error)
+    let uploadResponse;
+    let uploadError;
+    // Attach error handler to the stream
+    chunkStream.on('error', (err) => {
+      core.error(`File stream error for part ${partNumber}: ${err.message}`);
+    });
+    for (let attempt = 1; attempt <= 2; attempt++) {
+      try {
+        uploadResponse = await axios.put(
+          presignedUrl,
+          chunkStream,
+          {
+            headers: {
+              'Content-Type': 'application/octet-stream',
+              'Content-Length': contentLength
+            },
+            maxBodyLength: Infinity
+          }
+        );
+        uploadError = null;
+        break; // Success, exit retry loop
+      } catch (err) {
+        uploadError = err;
+        // Log more error details
+        if (err.response) {
+          core.error(`Chunk upload for part ${partNumber} failed (attempt ${attempt}): ${err.message}, status: ${err.response.status}, data: ${JSON.stringify(err.response.data)}`);
+        } else {
+          core.error(`Chunk upload for part ${partNumber} failed (attempt ${attempt}): ${err.message}`);
+        }
+        if (attempt === 1) {
+          // Re-create the stream for retry
+          chunkStream.destroy();
+        }
+      }
+      // If retrying, re-create the stream
+      if (attempt === 1 && uploadError) {
+        // Wait a short delay before retrying (optional, can be omitted or tuned)
+        await new Promise(res => setTimeout(res, 500));
+        // Re-create the stream for the retry
+        chunkStream = fs.createReadStream(filePath, { start: chunkStart, end: chunkEnd });
+        chunkStream.on('error', (err) => {
+          core.error(`File stream error for part ${partNumber} (retry): ${err.message}`);
+        });
+      }
+    }
+    if (uploadError) {
+      throw uploadError;
+    }
+    // Check for ETag presence
+    if (!uploadResponse.headers.etag) {
+      core.warning(`No ETag returned for part ${partNumber}. Response headers: ${JSON.stringify(uploadResponse.headers)}`);
+    }
+
+    // Add part to parts array
+    parts.push({
+      PartNumber: partNumber,
+      ETag: uploadResponse.headers.etag
+    });
+  }
+
+  // Return parts array
+  return parts;
+}
+
 async function run() {
   try {
     // Get inputs
@@ -35931,35 +36044,32 @@ async function run() {
       }
     );
 
-    const { pending_upload_id, primary_presigned_data, expansion_files } = uploadRequest.data;
+    const { pending_upload_id, primary_file, expansion_files } = uploadRequest.data;
+    let primaryFileParts = null;
+    let expansionFileParts = null;
 
-    // Upload primary file
-    core.info('Uploading primary file...');
-    await axios.put(
-      primary_presigned_data.url,
-      fs.createReadStream(primaryFilePath),
-      {
-        headers: {
-          'Content-Type': primary_presigned_data.headers['Content-Type'],
-          'Content-Length': primary_presigned_data.headers['Content-Length'],
-          'Content-Disposition': primary_presigned_data.headers['Content-Disposition'],
-          'x-amz-acl': 'private'
-        },
-        maxBodyLength: Infinity
-      }
-    );
-
-    // Upload expansion file if present
-    if (expansionFilePath) {
-      core.info('Uploading expansion file...');
+    // Handle primary file upload
+    if (primary_file.chunked_upload) {
+      core.info('Uploading primary file using chunked upload...');
+      primaryFileParts = await uploadChunkedFile({
+        filePath: primaryFilePath,
+        filesize: primaryStats.size,
+        pendingUploadId: pending_upload_id,
+        chunkedNumberParts: primary_file.chunked_number_parts,
+        chunkedPartSizeMb: primary_file.chunked_part_size_mb,
+        apiKey,
+        isExpansion: false
+      });
+    } else {
+      core.info('Uploading primary file using direct upload...');
       await axios.put(
-        expansion_files[0].presigned_data.url,
-        fs.createReadStream(expansionFilePath),
+        primary_file.presigned_data.url,
+        fs.createReadStream(primaryFilePath),
         {
           headers: {
-            'Content-Type': expansion_files[0].presigned_data.headers['Content-Type'],
-            'Content-Length': expansion_files[0].presigned_data.headers['Content-Length'],
-            'Content-Disposition': expansion_files[0].presigned_data.headers['Content-Disposition'],
+            'Content-Type': primary_file.presigned_data.headers['Content-Type'],
+            'Content-Length': primary_file.presigned_data.headers['Content-Length'],
+            'Content-Disposition': primary_file.presigned_data.headers['Content-Disposition'],
             'x-amz-acl': 'private'
           },
           maxBodyLength: Infinity
@@ -35967,11 +36077,53 @@ async function run() {
       );
     }
 
+    // Handle expansion file upload if present
+    if (expansionFilePath && expansion_files && expansion_files[0]) {
+      if (expansion_files[0].chunked_upload) {
+        core.info('Uploading expansion file using chunked upload...');
+        expansionFileParts = await uploadChunkedFile({
+          filePath: expansionFilePath,
+          filesize: expansionStats.size,
+          pendingUploadId: pending_upload_id,
+          chunkedNumberParts: expansion_files[0].chunked_number_parts,
+          chunkedPartSizeMb: expansion_files[0].chunked_part_size_mb,
+          apiKey,
+          isExpansion: true
+        });
+      } else {
+        core.info('Uploading expansion file using direct upload...');
+        await axios.put(
+          expansion_files[0].presigned_data.url,
+          fs.createReadStream(expansionFilePath),
+          {
+            headers: {
+              'Content-Type': expansion_files[0].presigned_data.headers['Content-Type'],
+              'Content-Length': expansion_files[0].presigned_data.headers['Content-Length'],
+              'Content-Disposition': expansion_files[0].presigned_data.headers['Content-Disposition'],
+              'x-amz-acl': 'private'
+            },
+            maxBodyLength: Infinity
+          }
+        );
+      }
+    }
+
     // Verify upload
     core.info('Verifying upload...');
+    const verifyPayload = { pending_upload_id };
+    
+    if (primaryFileParts) {
+      verifyPayload.multipart_chunks = primaryFileParts;
+    }
+    
+    if (expansionFileParts) {
+      if (!verifyPayload.multipart_chunks) verifyPayload.multipart_chunks = [];
+      verifyPayload.multipart_chunks = verifyPayload.multipart_chunks.concat(expansionFileParts);
+    }
+
     const verifyResponse = await axios.post(
       'https://app.buildstash.com/api/v1/upload/verify',
-      { pending_upload_id },
+      verifyPayload,
       {
         headers: {
           'Authorization': `Bearer ${apiKey}`,

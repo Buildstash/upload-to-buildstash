@@ -20,6 +20,16 @@ A GitHub action for uploading build artifacts to Buildstash.
       custom_build_number: '12345' # Optional custom build number
       platform: 'android'  # Assuming platform is Android, see Buildstash documentation for other platforms
       stream: 'default'  # Exact name of a build stream in your app
+      # Optional build associations
+      labels: |
+        to-review
+        signed
+      architectures: |
+        armv6
+        armv7
+        armv8
+        arm64v8
+        armv9
       # Optional CI information
       ci_pipeline: ${{ github.workflow }}
       ci_run_id: ${{ github.run_id }}

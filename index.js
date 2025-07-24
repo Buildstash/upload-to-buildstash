@@ -134,6 +134,20 @@ async function run() {
     const primaryStats = fs.statSync(primaryFilePath);
     const primaryFilename = path.basename(primaryFilePath);
 
+    // Get labels (if passed in) and parse into an array
+    const labelsInput = core.getInput('labels') || '';
+    const labels = labelsInput
+      .split(/\r?\n/)                     // split by newline
+      .map(label => label.trim())         // remove extra spaces
+      .filter(label => label.length > 0); // remove blanks
+
+    // Get architectures (if passed in) and parse into an array
+    const architecturesInput = core.getInput('architectures') || '';
+    const architectures = architecturesInput
+      .split(/\r?\n/)
+      .map(architecture => architecture.trim())
+      .filter(architecture => architecture.length > 0);
+
     // Prepare request payload
     const payload = {
       structure: structure,
@@ -147,6 +161,8 @@ async function run() {
       version_component_extra: core.getInput('version_component_extra'),
       version_component_meta: core.getInput('version_component_meta'),
       custom_build_number: core.getInput('custom_build_number'),
+      labels: labels,
+      architectures: architectures,
       source: 'ghactions',
       ci_pipeline: core.getInput('ci_pipeline'),
       ci_run_id: core.getInput('ci_run_id'),

@@ -32,6 +32,12 @@ inputs:
   custom_build_number:
     description: 'Custom build number (optional)'
     required: false
+  labels:
+    description: 'Array of labels (will be created if they do not already exist)'
+    required: false
+  architectures:
+    description: 'Array of architecture this build supports (must be supported by platform)'
+    required: false
   ci_pipeline:
     description: 'CI pipeline name'
     required: false

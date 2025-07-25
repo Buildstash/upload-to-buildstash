@@ -36,7 +36,7 @@ inputs:
     description: 'Array of labels (will be created if they do not already exist)'
     required: false
   architectures:
-    description: 'Array of architecture this build supports (must be supported by platform)'
+    description: 'Array of architectures this build supports (must be supported by platform)'
     required: false
   ci_pipeline:
     description: 'CI pipeline name'

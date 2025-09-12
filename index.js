@@ -148,6 +148,27 @@ async function run() {
       .map(architecture => architecture.trim())
       .filter(architecture => architecture.length > 0);
 
+    // Get metadata artifacts (if passed in) and parse JSON array
+    const metadataArtifactsInput = core.getInput('metadata_artifacts') || '';
+    let metadataArtifacts = [];
+    
+    if (metadataArtifactsInput.trim()) {
+      try {
+        // Parse JSON array of metadata artifacts
+        const parsedArtifacts = JSON.parse(metadataArtifactsInput);
+        if (Array.isArray(parsedArtifacts)) {
+          metadataArtifacts = parsedArtifacts.map(artifact => ({
+            path: artifact.path,
+            description: artifact.description || null
+          }));
+        } else {
+          throw new Error('Metadata artifacts must be an array');
+        }
+      } catch (error) {
+        throw new Error(`Invalid metadata artifacts JSON: ${error.message}`);
+      }
+    }
+
     // Prepare request payload
     const payload = {
       structure: structure,
@@ -176,6 +197,7 @@ async function run() {
       vc_commit_sha: core.getInput('vc_commit_sha'),
       vc_commit_url: core.getInput('vc_commit_url'),
       platform: core.getInput('platform'),
+      custom_target: core.getInput('custom_target'),
       stream: core.getInput('stream'),
       notes: core.getInput('notes')
     };
@@ -308,6 +330,99 @@ async function run() {
     core.setOutput('pending_processing', pendingProcessing);
     core.setOutput('build_info_url', buildInfoUrl);
     core.setOutput('download_url', downloadUrl);
+
+    // Handle metadata artifact uploads if present (max 10 files)
+    if (metadataArtifacts.length > 0) {
+      const maxMetadataFiles = 10;
+      const filesToUpload = metadataArtifacts.slice(0, maxMetadataFiles);
+      const skippedCount = metadataArtifacts.length - filesToUpload.length;
+      
+      if (skippedCount > 0) {
+        core.warning(`Skipping ${skippedCount} metadata artifact(s) - maximum of ${maxMetadataFiles} files allowed`);
+      }
+      
+      core.info(`Uploading ${filesToUpload.length} metadata artifact(s)...`);
+      
+      for (let i = 0; i < filesToUpload.length; i++) {
+        const metadataArtifact = filesToUpload[i];
+        const metadataFilePath = metadataArtifact.path;
+        const metadataDescription = metadataArtifact.description;
+        
+        // Verify metadata file exists
+        if (!fs.existsSync(metadataFilePath)) {
+          throw new Error(`Metadata artifact file not found at path: ${metadataFilePath}`);
+        }
+
+        // Get metadata file stats
+        const metadataStats = fs.statSync(metadataFilePath);
+        const metadataFilename = path.basename(metadataFilePath);
+
+        const descriptionText = metadataDescription ? ` (${metadataDescription})` : '';
+        core.info(`Uploading metadata artifact ${i + 1}/${filesToUpload.length}: ${metadataFilename}${descriptionText}`);
+
+        // Request upload for metadata file
+        const metadataUploadRequest = await axios.post(
+          'https://app.buildstash.com/api/v1/upload/metadata/request',
+          {
+            primary_pending_upload_id: pending_upload_id,
+            filename: metadataFilename,
+            size_bytes: metadataStats.size
+          },
+          {
+            headers: {
+              'Authorization': `Bearer ${apiKey}`,
+              'Content-Type': 'application/json'
+            }
+          }
+        );
+
+        const { metadata_pending_upload_id: metadataPendingUploadId, presigned_upload_data: presignedData } = metadataUploadRequest.data;
+
+        // Upload metadata file using the correct response structure
+        const uploadUrl = presignedData.url;
+        const uploadHeaders = presignedData.headers || {};
+
+        if (!uploadUrl) {
+          throw new Error(`No upload URL found in metadata upload response: ${JSON.stringify(metadataUploadRequest.data)}`);
+        }
+
+        await axios.put(
+          uploadUrl,
+          fs.createReadStream(metadataFilePath),
+          {
+            headers: {
+              'Content-Type': uploadHeaders['Content-Type'] || 'application/octet-stream',
+              'Content-Length': uploadHeaders['Content-Length'] || metadataStats.size.toString(),
+              'Content-Disposition': uploadHeaders['Content-Disposition'] || `attachment; filename="${metadataFilename}"`,
+              'x-amz-acl': 'private'
+            },
+            maxBodyLength: Infinity
+          }
+        );
+
+        // Verify metadata file upload
+        const verifyPayload = { pending_upload_id: metadataPendingUploadId };
+        if (metadataDescription) {
+          verifyPayload.file_description = metadataDescription;
+        }
+        
+        const metadataVerifyResponse = await axios.post(
+          'https://app.buildstash.com/api/v1/upload/metadata/verify',
+          verifyPayload,
+          {
+            headers: {
+              'Authorization': `Bearer ${apiKey}`,
+              'Content-Type': 'application/json'
+            }
+          }
+        );
+
+        const metadataArtifactId = metadataVerifyResponse.data.metadata_artifact_id;
+        core.info(`Metadata artifact ${metadataFilename} uploaded successfully with ID: ${metadataArtifactId}`);
+      }
+      
+      core.info('All metadata artifacts uploaded successfully!');
+    }
 
     core.info('Upload completed and verified successfully! Uploaded build id ' + buildId);
     

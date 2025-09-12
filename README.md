@@ -20,6 +20,13 @@ A GitHub action for uploading build artifacts to Buildstash.
       custom_build_number: '12345' # Optional custom build number
       platform: 'android'  # Assuming platform is Android, see Buildstash documentation for other platforms
       stream: 'default'  # Exact name of a build stream in your app
+      # Optional metadata artifacts (JSON format with optional descriptions)
+      metadata_artifacts: |
+        [
+          {"path": "metadata.json", "description": "Build metadata and version info"},
+          {"path": "changelog.md", "description": "Release notes and changes"},
+          {"path": "readme.txt"}
+        ]
       # Optional build associations
       labels: |
         to-review
@@ -30,6 +37,7 @@ A GitHub action for uploading build artifacts to Buildstash.
         armv8
         arm64v8
         armv9
+      custom_target: 'my-custom-target' # Exact name of your custom target, associated with both app and platform
       # Optional CI information
       ci_pipeline: ${{ github.workflow }}
       ci_run_id: ${{ github.run_id }}
@@ -46,6 +54,38 @@ A GitHub action for uploading build artifacts to Buildstash.
 
 ### Upload expansion file
 You may also optionally pass in a single expansion file, if the platform / primary file supports it. For example, if you upload an .apk, you could upload an .obb with it. To do so set 'structure' to `file+expansion`, and pass in 'expansion_file_path'.
+
+### Upload metadata files
+Optional related metadata files can be uploaded alongside the binaries for your actual build. These may include SBOMs (SPDX / CycloneDX), build logs, test results, changelogs, etc.
+
+**Format:** JSON array with `path` (required) and `description` (optional) fields.
+
+**Examples:**
+```yaml
+# With descriptions
+metadata_artifacts: |
+  [
+    {"path": "metadata.json", "description": "Build metadata and version info"},
+    {"path": "changelog.md", "description": "Release notes and changes"},
+    {"path": "sbom.spdx", "description": "Software Bill of Materials"}
+  ]
+
+# Without descriptions
+metadata_artifacts: |
+  [
+    {"path": "metadata.json"},
+    {"path": "changelog.md"}
+  ]
+
+# Mixed (some with, some without descriptions)
+metadata_artifacts: |
+  [
+    {"path": "metadata.json", "description": "Build metadata"},
+    {"path": "changelog.md"}
+  ]
+```
+
+**Note:** Maximum of 10 metadata files per upload. Additional files will be skipped with a warning.
 
 ### API key
 You will need to generate an application specific API key, and save it as an [Actions secret](https://docs.github.com/en/actions/security-for-github-actions/security-guides/using-secrets-in-github-actions) in your repository.

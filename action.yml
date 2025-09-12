@@ -76,11 +76,17 @@ inputs:
   platform:
     description: 'Platform'
     required: true
+  custom_target:
+    description: 'Custom target'
+    required: false
   stream:
     description: 'Stream'
     required: true
   notes:
     description: 'Build notes'
+    required: false
+  metadata_artifacts:
+    description: 'Related metadata files. JSON array of filepath and optional description'
     required: false
 outputs:
   build_id:

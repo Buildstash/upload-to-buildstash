@@ -372,7 +372,7 @@ async function run() {
         };
         
         // Simple self-contained output for each build
-        const statusIcon = pendingProcessingText === '📦';
+        const statusIcon = '📦';
         const statusText = pendingProcessingText === 'Yes' ? '(Processing required)' : '';
         
         const markdown = `### ${statusIcon} ${platform} Build ${statusText}

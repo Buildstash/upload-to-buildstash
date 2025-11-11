@@ -324,12 +324,74 @@ async function run() {
     const pendingProcessing = verifyResponse.data.pending_processing;
     const buildInfoUrl = verifyResponse.data.build_info_url;
     const downloadUrl = verifyResponse.data.download_url;
+    const build = verifyResponse.data.build;
 
     // Set the outputs using the Actions core library
     core.setOutput('build_id', buildId);
     core.setOutput('pending_processing', pendingProcessing);
     core.setOutput('build_info_url', buildInfoUrl);
     core.setOutput('download_url', downloadUrl);
+
+    // Add to GitHub Actions summary
+    try {
+      const summaryPath = process.env.GITHUB_STEP_SUMMARY;
+      const workspacePath = process.env.GITHUB_WORKSPACE || '.';
+      const stateFilePath = path.join(workspacePath, '.buildstash-summary-state.json');
+      
+      if (!summaryPath) {
+        core.warning('GITHUB_STEP_SUMMARY environment variable is not set. Skipping summary generation.');
+      } else {
+        // Extract build data for this upload
+        const platform = build?.platform?.short_name || build?.platform?.name || 'N/A';
+        const primaryFilename = build?.primary_file?.filename || build?.primary_file?.name || 'N/A';
+        const buildFilesize = build?.size_total_string || 'N/A';
+        const pendingProcessingText = pendingProcessing ? 'Yes' : 'No';
+        
+        // Format version column
+        let version = '';
+        if (build?.version && build?.build_number) {
+          version = `${build.version} (${build.build_number})`;
+        } else if (build?.version) {
+          version = build.version;
+        } else if (build?.build_number) {
+          version = build.build_number;
+        } else {
+          version = 'N/A';
+        }
+        
+        // Current build info
+        const currentBuild = {
+          buildId,
+          platform,
+          primaryFilename,
+          version,
+          buildFilesize,
+          buildInfoUrl,
+          downloadUrl,
+          pendingProcessing: pendingProcessingText
+        };
+        
+        // Simple self-contained output for each build
+        const statusIcon = pendingProcessingText === '📦';
+        const statusText = pendingProcessingText === 'Yes' ? '(Processing required)' : '';
+        
+        const markdown = `### ${statusIcon} ${platform} Build ${statusText}
+
+| | |
+|---|---|
+| **Build ID** | ${buildId} |
+| **Filename** | ${primaryFilename} |
+| **Version** | ${version} |
+| **Size** | ${buildFilesize} |
+| **Actions** | [View Summary](${buildInfoUrl}) • [Download](${downloadUrl}) |
+`;
+        
+        fs.writeFileSync(summaryPath, markdown);
+      }
+    } catch (summaryError) {
+      // Don't fail the action if summary writing fails
+      core.warning(`Failed to write GitHub Actions summary: ${summaryError.message}`);
+    }
 
     // Handle metadata artifact uploads if present (max 10 files)
     if (metadataArtifacts.length > 0) {

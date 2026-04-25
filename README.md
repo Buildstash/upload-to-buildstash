@@ -91,4 +91,4 @@ metadata_artifacts: |
 You will need to generate an application specific API key, and save it as an [Actions secret](https://docs.github.com/en/actions/security-for-github-actions/security-guides/using-secrets-in-github-actions) in your repository.
 
 ### More help
-**For more help, please see the [GitHub Actions setup in Buildstash documentation](https://docs.buildstash.com/integrations/ci/github).**
+**For more help, please see the [GitHub Actions setup in Buildstash documentation](https://docs.buildstash.com/integrations/ci/github-actions).**

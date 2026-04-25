@@ -37378,6 +37378,7 @@ async function run() {
     };
 
     // Add expansion file info if structure is file+expansion and expansion file path provided
+    let expansionStats = null;
     if (structure === 'file+expansion' && expansionFilePath) {
       // Verify expansion file exists
       if (!fs.existsSync(expansionFilePath)) {
@@ -37385,7 +37386,7 @@ async function run() {
       }
 
       // Get expansion file stats
-      const expansionStats = fs.statSync(expansionFilePath);
+      expansionStats = fs.statSync(expansionFilePath);
       const expansionFilename = path.basename(expansionFilePath);
 
       payload.expansion_files = [{
